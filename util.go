@@ -21,11 +21,6 @@ func wrapUnit[T TimeUnit](x T, suffix string) string {
 			return fmt.Sprint(x, "th", " ", suffix)
 		}
 	}
-	// TimeOfDay
-	hmX, ok := anyX.(TimeOfDay)
-	if ok {
-		return fmt.Sprintf("%02d:%02d:%02d", hmX.Hour, hmX.Minute, hmX.Second)
-	}
 	// time.Weekday
 	// time.Month
 	return fmt.Sprint(x)
@@ -49,4 +44,8 @@ func Min[T cmp.Ordered](arr ...T) T {
 		}
 	}
 	return vMin
+}
+
+func Ptr[T any](value T) *T {
+	return &value
 }

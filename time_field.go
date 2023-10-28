@@ -17,3 +17,18 @@ func (f TField[T]) String(unitName string) string {
 	}
 	return b.String()
 }
+
+func (f TField[T]) Nearest(data T) *T {
+	var res *T
+	for _, u := range f {
+		now := u.Nearest(data)
+		if now != nil {
+			if res == nil {
+				res = now
+				continue
+			}
+			res = Ptr(maxT(*res, *now))
+		}
+	}
+	return res
+}

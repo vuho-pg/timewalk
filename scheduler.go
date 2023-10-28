@@ -14,12 +14,12 @@ type Schedule struct {
 	MinuteField    TField[int]          `json:"minute"`      //0-59
 	SecondField    TField[int]          `json:"second"`      //0-59
 	Duration       time.Duration        `json:"duration"`
-	StartAt        time.Time            `json:"start_at"`
+	StartAt        *time.Time           `json:"start_at"`
 	Location       string               `json:"location"`
 	Loc            *time.Location       `json:"-"`
 }
 
-func NewSchedule(startAt time.Time) *Schedule {
+func NewSchedule() *Schedule {
 	return &Schedule{
 		YearField:      Field[int](From(0)),
 		MonthField:     Field[time.Month](From(time.January)),
@@ -29,19 +29,24 @@ func NewSchedule(startAt time.Time) *Schedule {
 		MinuteField:    Field[int](From(0)),
 		SecondField:    Field[int](From(0)),
 		Duration:       0 * time.Second,
-		StartAt:        startAt,
+		StartAt:        nil,
 		Location:       time.Local.String(),
 		Loc:            time.Local,
 	}
 }
 
-func (s *Schedule) SetLoc(loc *time.Location) *Schedule {
+func (s *Schedule) WithStartAt(t time.Time) *Schedule {
+	s.StartAt = ptr(t)
+	return s
+}
+
+func (s *Schedule) WithLoc(loc *time.Location) *Schedule {
 	s.Loc = loc
 	s.Location = loc.String()
 	return s
 }
 
-func (s *Schedule) SetLocString(loc string) *Schedule {
+func (s *Schedule) WithLocString(loc string) *Schedule {
 	s.Location = loc
 	tz, err := time.LoadLocation(loc)
 	if err != nil {
@@ -51,7 +56,7 @@ func (s *Schedule) SetLocString(loc string) *Schedule {
 	return s
 }
 
-func (s *Schedule) SetDuration(dur time.Duration) *Schedule {
+func (s *Schedule) WithDuration(dur time.Duration) *Schedule {
 	s.Duration = dur
 	return s
 }
@@ -109,16 +114,16 @@ func (s *Schedule) Nearest(t time.Time) *time.Time {
 	)
 	over := false
 year:
-	nY = s.YearField.Nearest(y)
+	nY = s.YearField.NearestBefore(y)
 	if nY == nil {
 		return nil
 	}
 	over = over || *nY < t.Year()
 month:
 	if over {
-		nM = s.MonthField.Nearest(time.December)
+		nM = s.MonthField.NearestBefore(time.December)
 	} else {
-		nM = s.MonthField.Nearest(m)
+		nM = s.MonthField.NearestBefore(m)
 	}
 	if nM == nil {
 		y--
@@ -127,9 +132,9 @@ month:
 	over = over || *nM < t.Month()
 day:
 	if over {
-		nD = s.DayField.Nearest(31)
+		nD = s.DayField.NearestBefore(maxDay(*nY, *nM))
 	} else {
-		nD = s.DayField.Nearest(d)
+		nD = s.DayField.NearestBefore(d)
 	}
 	if nD == nil {
 		m--
@@ -138,9 +143,9 @@ day:
 	over = over || *nD < t.Day()
 hour:
 	if over {
-		nH = s.HourField.Nearest(23)
+		nH = s.HourField.NearestBefore(23)
 	} else {
-		nH = s.HourField.Nearest(h)
+		nH = s.HourField.NearestBefore(h)
 	}
 	if nH == nil {
 		d--
@@ -149,9 +154,9 @@ hour:
 	over = over || *nH < t.Hour()
 minute:
 	if over {
-		nMin = s.MinuteField.Nearest(59)
+		nMin = s.MinuteField.NearestBefore(59)
 	} else {
-		nMin = s.MinuteField.Nearest(minute)
+		nMin = s.MinuteField.NearestBefore(minute)
 	}
 	if nMin == nil {
 		h--
@@ -160,16 +165,16 @@ minute:
 	over = over || *nMin < t.Minute()
 	// second
 	if over {
-		nSec = s.SecondField.Nearest(59)
+		nSec = s.SecondField.NearestBefore(59)
 	} else {
-		nSec = s.SecondField.Nearest(sec)
+		nSec = s.SecondField.NearestBefore(sec)
 
 	}
 	if nSec == nil {
 		minute--
 		goto minute
 	}
-	return Ptr(time.Date(*nY, *nM, *nD, *nH, *nMin, *nSec, 0, s.Loc))
+	return ptr(time.Date(*nY, *nM, *nD, *nH, *nMin, *nSec, 0, s.Loc))
 }
 
 func (s *Schedule) String() string {
@@ -221,11 +226,15 @@ func (s *Schedule) String() string {
 		pre = true
 		b.WriteString(s.SecondField.String("second"))
 	}
-	b.WriteString(" start at ")
-	b.WriteString(s.StartAt.In(s.Loc).Format(time.RFC850))
-	b.WriteString(" with ")
-	b.WriteString(s.Duration.String())
-	b.WriteString(" duration")
+	if s.StartAt != nil {
+		b.WriteString(", start from ")
+		b.WriteString(s.StartAt.In(s.Loc).Format(time.RFC850))
+	}
+	if s.Duration != 0 {
+		b.WriteString(" with ")
+		b.WriteString(s.Duration.String())
+		b.WriteString(" duration")
+	}
 
 	return b.String()
 }

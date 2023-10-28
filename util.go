@@ -1,16 +1,33 @@
 package timewalk
 
 import (
-	"cmp"
 	"fmt"
+	"time"
 )
 
-func wrapUnit[T TimeUnit](x T, suffix string) string {
-	anyX := any(x)
-	// int
-	intX, ok := anyX.(int)
-	if ok {
-		switch intX % 10 {
+func maxDay(year int, month time.Month) int {
+	switch month {
+
+	case time.April, time.June, time.September, time.November:
+		return 30
+	case time.February:
+		if year%4 == 0 && year%100 != 0 || year%400 == 0 {
+			return 29
+		}
+		return 28
+	default:
+		return 31
+	}
+}
+
+func ordinalSuffix[T TimeUnit](x T, suffix string) string {
+	switch any(x).(type) {
+	case int:
+		switch x % 100 {
+		case 11, 12, 13:
+			return fmt.Sprint(x, "th", " ", suffix)
+		}
+		switch x % 10 {
 		case 1:
 			return fmt.Sprint(x, "st", " ", suffix)
 		case 2:
@@ -20,32 +37,12 @@ func wrapUnit[T TimeUnit](x T, suffix string) string {
 		default:
 			return fmt.Sprint(x, "th", " ", suffix)
 		}
+	default:
+		return fmt.Sprint(x)
 	}
-	// time.Weekday
-	// time.Month
-	return fmt.Sprint(x)
+
 }
 
-func Max[T cmp.Ordered](arr ...T) T {
-	vMax := arr[0]
-	for _, x := range arr {
-		if x > vMax {
-			vMax = x
-		}
-	}
-	return vMax
-}
-
-func Min[T cmp.Ordered](arr ...T) T {
-	vMin := arr[0]
-	for _, x := range arr {
-		if x < vMin {
-			vMin = x
-		}
-	}
-	return vMin
-}
-
-func Ptr[T any](value T) *T {
+func ptr[T any](value T) *T {
 	return &value
 }

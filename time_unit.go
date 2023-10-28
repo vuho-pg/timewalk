@@ -36,11 +36,11 @@ func From[T TimeUnit](value T) *TUnit[T] {
 	return Unit[T]().From(value)
 }
 
-func Step[T TimeUnit](step T) *TUnit[T] {
-	return Unit[T]().Step(step)
+func Every[T TimeUnit](step T) *TUnit[T] {
+	return Unit[T]().Every(step)
 }
 
-func (u *TUnit[T]) Step(step T) *TUnit[T] {
+func (u *TUnit[T]) Every(step T) *TUnit[T] {
 	u.Type |= TStep
 	u.ValueStep = &step
 	return u
@@ -71,36 +71,20 @@ func (u *TUnit[T]) String(unitName string) string {
 			b.WriteString(" ")
 		}
 		b.WriteString("from ")
-		b.WriteString(wrapUnit(*u.ValueFrom, unitName))
+		b.WriteString(ordinalSuffix(*u.ValueFrom, unitName))
 		if u.ValueTo != nil {
 			b.WriteString(" through ")
-			b.WriteString(wrapUnit(*u.ValueTo, unitName))
+			b.WriteString(ordinalSuffix(*u.ValueTo, unitName))
 		}
 	}
 	if u.Type.Is(TValue) && u.Value != nil {
 		b.WriteString("at ")
-		b.WriteString(wrapUnit(*u.Value, unitName))
+		b.WriteString(ordinalSuffix(*u.Value, unitName))
 	}
 	return b.String()
 }
 
-func (u *TUnit[T]) Last(max T) T {
-	if u.Type.Is(TStep) {
-		return max
-	}
-	if u.Type.Is(TRange) {
-		if u.ValueTo != nil {
-			return minT(max, *u.ValueTo)
-		}
-		return max
-	}
-	if u.Type.Is(TValue) {
-		return *u.Value
-	}
-	return max
-}
-
-func (u *TUnit[T]) Nearest(data T) *T {
+func (u *TUnit[T]) NearestBefore(data T) *T {
 	// [] range
 	// [/] range step
 	// * value
@@ -125,7 +109,7 @@ func (u *TUnit[T]) Nearest(data T) *T {
 			if u.Type.Is(TStep) {
 				dist := data - *u.ValueFrom
 				stepCnt := dist / (*u.ValueStep)
-				return Ptr(*u.ValueFrom + stepCnt*(*u.ValueStep))
+				return ptr(*u.ValueFrom + stepCnt*(*u.ValueStep))
 			}
 
 			return &data
@@ -134,7 +118,7 @@ func (u *TUnit[T]) Nearest(data T) *T {
 		if u.ValueTo != nil && *u.ValueTo <= data {
 			if u.Type.Is(TStep) {
 				mod := (*u.ValueTo - *u.ValueFrom) % (*u.ValueStep)
-				return Ptr(*u.ValueTo - mod)
+				return ptr(*u.ValueTo - mod)
 			}
 			return u.ValueTo
 		}
@@ -145,28 +129,8 @@ func (u *TUnit[T]) Nearest(data T) *T {
 			return nil
 		}
 		stepCnt := data / (*u.ValueStep)
-		return Ptr(stepCnt * (*u.ValueStep))
+		return ptr(stepCnt * (*u.ValueStep))
 	}
 
 	return nil
-}
-
-func minT[T TimeUnit](arr ...T) T {
-	res := arr[0]
-	for _, v := range arr[1:] {
-		if v < res {
-			res = v
-		}
-	}
-	return res
-}
-
-func maxT[T TimeUnit](arr ...T) T {
-	res := arr[0]
-	for _, v := range arr[1:] {
-		if v > res {
-			res = v
-		}
-	}
-	return res
 }

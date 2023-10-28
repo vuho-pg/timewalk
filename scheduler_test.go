@@ -3,14 +3,15 @@ package timewalk
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
 
 func TestNewSchedule(t *testing.T) {
-	s := NewSchedule(time.Now()).
-		SetLocString(time.Local.String()).
-		SetDuration(time.Hour*24).
+	s := NewSchedule().
+		WithLocString(time.Local.String()).
+		WithDuration(time.Hour*24).
 		Year(Unit[int]().From(2023).To(2025)).
 		Month(Unit[time.Month]().From(1).To(4), Unit[time.Month]().At(10)).
 		Day(Unit[int]().From(1).To(31)).
@@ -22,15 +23,29 @@ func TestNewSchedule(t *testing.T) {
 }
 
 func TestSchedule_Nearest(t *testing.T) {
-	// daily 10:30 -> 11:00, 11:15-11:30
-	s := NewSchedule(time.Unix(0, 0)).SetLocString(time.Local.String()).
-		SetDuration(30 * time.Minute).
-		Year(From(0)).
-		Month(From(time.January)).
-		Day(From(1)).
-		DayOfWeek(From(time.Sunday)).
-		Hour(At(10)).Minute(At(30))
-	fmt.Println(s.Nearest(time.Date(2020, 11, 1, 10, 29, 0, 0, time.Local)))
-	fmt.Println(s.Nearest(time.Date(2020, 11, 3, 0, 0, 0, 0, time.Local)))
+	var s *Schedule
+	//start := time.Unix(0, 0)
+	// year
+	// every 2 year
+	s = NewSchedule().Year(Every(2))
+	fmt.Println(s)
+	assert.Equal(t, ptr(time.Date(2020, 12, 31, 23, 59, 59, 0, time.Local)), s.Nearest(time.Date(2021, 12, 14, 1, 3, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2020, 4, 1, 9, 0, 0, 0, time.Local)), s.Nearest(time.Date(2020, 4, 1, 9, 0, 0, 0, time.Local)))
+
+	// from 2020 to 2025
+	s = NewSchedule().Year(From(2020).To(2025))
+	fmt.Println(s)
+	// from 2020 to 2025 every 2 year
+	// at 2020
+
+	// month
+
+	// day
+
+	// hour
+
+	// min
+
+	// sec
 
 }

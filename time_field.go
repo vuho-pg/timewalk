@@ -2,9 +2,9 @@ package timewalk
 
 import "strings"
 
-type TField[T TimeUnit] []*TUnit[T]
+type TField[T TimeUnit] []*Unit[T]
 
-func Field[T TimeUnit](unit ...*TUnit[T]) TField[T] {
+func Field[T TimeUnit](unit ...*Unit[T]) TField[T] {
 	return TField[T](unit)
 }
 

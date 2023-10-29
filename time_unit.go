@@ -6,11 +6,23 @@ import (
 	"time"
 )
 
+type UnitType int
+
+const (
+	TValue UnitType = 1 << iota
+	TRange
+	TStep
+)
+
+func (u UnitType) Is(t UnitType) bool {
+	return u&t != 0
+}
+
 type TimeUnit interface {
 	int | time.Weekday | time.Month
 }
 
-type TUnit[T TimeUnit] struct {
+type Unit[T TimeUnit] struct {
 	Type      UnitType `json:"type"`
 	Value     *T       `json:"value,omitempty"`
 	ValueFrom *T       `json:"value_from,omitempty"`
@@ -18,47 +30,43 @@ type TUnit[T TimeUnit] struct {
 	ValueStep *T       `json:"value_step,omitempty"`
 }
 
-func Unit[T TimeUnit]() *TUnit[T] {
-	return &TUnit[T]{}
-}
-
-func (u *TUnit[T]) At(value T) *TUnit[T] {
+func (u *Unit[T]) At(value T) *Unit[T] {
 	u.Type |= TValue
 	u.Value = &value
 	return u
 }
 
-func At[T TimeUnit](value T) *TUnit[T] {
-	return Unit[T]().At(value)
+func At[T TimeUnit](value T) *Unit[T] {
+	return ptr(Unit[T]{}).At(value)
 }
 
-func From[T TimeUnit](value T) *TUnit[T] {
-	return Unit[T]().From(value)
+func From[T TimeUnit](value T) *Unit[T] {
+	return ptr(Unit[T]{}).From(value)
 }
 
-func Every[T TimeUnit](step T) *TUnit[T] {
-	return Unit[T]().Every(step)
+func Every[T TimeUnit](step T) *Unit[T] {
+	return ptr(Unit[T]{}).Every(step)
 }
 
-func (u *TUnit[T]) Every(step T) *TUnit[T] {
+func (u *Unit[T]) Every(step T) *Unit[T] {
 	u.Type |= TStep
 	u.ValueStep = &step
 	return u
 }
 
-func (u *TUnit[T]) From(value T) *TUnit[T] {
+func (u *Unit[T]) From(value T) *Unit[T] {
 	u.Type |= TRange
 	u.ValueFrom = &value
 	return u
 }
 
-func (u *TUnit[T]) To(value T) *TUnit[T] {
+func (u *Unit[T]) To(value T) *Unit[T] {
 	u.Type |= TRange
 	u.ValueTo = &value
 	return u
 }
 
-func (u *TUnit[T]) String(unitName string) string {
+func (u *Unit[T]) String(unitName string) string {
 	b := strings.Builder{}
 	if u.Type.Is(TStep) && u.ValueStep != nil {
 		b.WriteString("every ")
@@ -84,7 +92,7 @@ func (u *TUnit[T]) String(unitName string) string {
 	return b.String()
 }
 
-func (u *TUnit[T]) Previous(data T) *T {
+func (u *Unit[T]) Previous(data T) *T {
 	// [] range
 	// [/] range step
 	// * value

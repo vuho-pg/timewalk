@@ -5,6 +5,16 @@ import (
 	"time"
 )
 
+var (
+	AnyYear      = Field[int](From(0))
+	AnyMonth     = Field[time.Month](From(time.January))
+	AnyDay       = Field[int](From(1))
+	AnyDayOfWeek = Field[time.Weekday](From(time.Sunday))
+	AnyHour      = Field[int](From(0))
+	AnyMinute    = Field[int](From(0))
+	AnySecond    = Field[int](From(0))
+)
+
 type Schedule struct {
 	YearField      TField[int]          `json:"year"`
 	MonthField     TField[time.Month]   `json:"month"`       //1-12
@@ -14,29 +24,20 @@ type Schedule struct {
 	MinuteField    TField[int]          `json:"minute"`      //0-59
 	SecondField    TField[int]          `json:"second"`      //0-59
 	Duration       time.Duration        `json:"duration"`
-	StartAt        *time.Time           `json:"start_at"`
+	Start          *time.Time           `json:"start"`
 	Location       string               `json:"location"`
 	Loc            *time.Location       `json:"-"`
 }
 
-func NewSchedule() *Schedule {
+func Scheduler() *Schedule {
 	return &Schedule{
-		YearField:      Field[int](From(0)),
-		MonthField:     Field[time.Month](From(time.January)),
-		DayField:       Field[int](From(1)),
-		DayOfWeekField: Field[time.Weekday](From(time.Sunday)),
-		HourField:      Field[int](From(0)),
-		MinuteField:    Field[int](From(0)),
-		SecondField:    Field[int](From(0)),
-		Duration:       0 * time.Second,
-		StartAt:        nil,
-		Location:       time.Local.String(),
-		Loc:            time.Local,
+		Location: time.Local.String(),
+		Loc:      time.Local,
 	}
 }
 
-func (s *Schedule) WithStartAt(t time.Time) *Schedule {
-	s.StartAt = ptr(t)
+func (s *Schedule) StartAt(t time.Time) *Schedule {
+	s.Start = ptr(t)
 	return s
 }
 
@@ -61,37 +62,37 @@ func (s *Schedule) WithDuration(dur time.Duration) *Schedule {
 	return s
 }
 
-func (s *Schedule) Year(units ...*TUnit[int]) *Schedule {
+func (s *Schedule) Year(units ...*Unit[int]) *Schedule {
 	s.YearField = units
 	return s
 }
 
-func (s *Schedule) Month(units ...*TUnit[time.Month]) *Schedule {
+func (s *Schedule) Month(units ...*Unit[time.Month]) *Schedule {
 	s.MonthField = units
 	return s
 }
 
-func (s *Schedule) Day(units ...*TUnit[int]) *Schedule {
+func (s *Schedule) Day(units ...*Unit[int]) *Schedule {
 	s.DayField = units
 	return s
 }
 
-func (s *Schedule) DayOfWeek(units ...*TUnit[time.Weekday]) *Schedule {
+func (s *Schedule) DayOfWeek(units ...*Unit[time.Weekday]) *Schedule {
 	s.DayOfWeekField = units
 	return s
 }
 
-func (s *Schedule) Hour(field ...*TUnit[int]) *Schedule {
+func (s *Schedule) Hour(field ...*Unit[int]) *Schedule {
 	s.HourField = field
 	return s
 }
 
-func (s *Schedule) Minute(field ...*TUnit[int]) *Schedule {
+func (s *Schedule) Minute(field ...*Unit[int]) *Schedule {
 	s.MinuteField = field
 	return s
 }
 
-func (s *Schedule) Second(field ...*TUnit[int]) *Schedule {
+func (s *Schedule) Second(field ...*Unit[int]) *Schedule {
 	s.SecondField = field
 	return s
 }
@@ -114,16 +115,24 @@ func (s *Schedule) Previous(t time.Time) *time.Time {
 	)
 	over := false
 year:
-	nY = s.YearField.Previous(y)
+	yearField := s.YearField
+	if len(yearField) == 0 {
+		yearField = AnyYear
+	}
+	nY = yearField.Previous(y)
 	if nY == nil {
 		return nil
 	}
 	over = over || *nY < t.Year()
 month:
+	monthField := s.MonthField
+	if len(monthField) == 0 {
+		monthField = AnyMonth
+	}
 	if over {
-		nM = s.MonthField.Previous(time.December)
+		nM = monthField.Previous(time.December)
 	} else {
-		nM = s.MonthField.Previous(m)
+		nM = monthField.Previous(m)
 	}
 	if nM == nil {
 		y--
@@ -131,10 +140,14 @@ month:
 	}
 	over = over || *nM < t.Month()
 day:
+	dayField := s.DayField
+	if len(dayField) == 0 {
+		dayField = AnyDay
+	}
 	if over {
-		nD = s.DayField.Previous(maxDay(*nY, *nM))
+		nD = dayField.Previous(maxDay(*nY, *nM))
 	} else {
-		nD = s.DayField.Previous(d)
+		nD = dayField.Previous(d)
 	}
 	if nD == nil {
 		m--
@@ -142,10 +155,14 @@ day:
 	}
 	over = over || *nD < t.Day()
 hour:
+	hourField := s.HourField
+	if len(hourField) == 0 {
+		hourField = AnyHour
+	}
 	if over {
-		nH = s.HourField.Previous(23)
+		nH = hourField.Previous(23)
 	} else {
-		nH = s.HourField.Previous(h)
+		nH = hourField.Previous(h)
 	}
 	if nH == nil {
 		d--
@@ -153,10 +170,14 @@ hour:
 	}
 	over = over || *nH < t.Hour()
 minute:
+	minField := s.MinuteField
+	if len(minField) == 0 {
+		minField = AnyMinute
+	}
 	if over {
-		nMin = s.MinuteField.Previous(59)
+		nMin = minField.Previous(59)
 	} else {
-		nMin = s.MinuteField.Previous(minute)
+		nMin = minField.Previous(minute)
 	}
 	if nMin == nil {
 		h--
@@ -164,10 +185,14 @@ minute:
 	}
 	over = over || *nMin < t.Minute()
 	// second
+	secField := s.SecondField
+	if len(secField) == 0 {
+		secField = AnySecond
+	}
 	if over {
-		nSec = s.SecondField.Previous(59)
+		nSec = secField.Previous(59)
 	} else {
-		nSec = s.SecondField.Previous(sec)
+		nSec = secField.Previous(sec)
 
 	}
 	if nSec == nil {
@@ -226,9 +251,9 @@ func (s *Schedule) String() string {
 		pre = true
 		b.WriteString(s.SecondField.String("second"))
 	}
-	if s.StartAt != nil {
+	if s.Start != nil {
 		b.WriteString(", start from ")
-		b.WriteString(s.StartAt.In(s.Loc).Format(time.RFC850))
+		b.WriteString(s.Start.In(s.Loc).Format(time.RFC850))
 	}
 	if s.Duration != 0 {
 		b.WriteString(" with ")

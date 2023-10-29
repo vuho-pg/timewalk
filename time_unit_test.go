@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestTUnit_String(t *testing.T) {
+func TestUnit_String(t *testing.T) {
 	unitName := "unit"
 	// step
 	s := Every(3)
@@ -31,10 +31,10 @@ func TestTUnit_String(t *testing.T) {
 
 }
 
-func TestTUnit_Previous(t *testing.T) {
+func TestUnit_Previous(t *testing.T) {
 
 	// value
-	v := TUnit[int]{
+	v := Unit[int]{
 		Type:  TValue,
 		Value: ptr(10),
 	}
@@ -46,7 +46,7 @@ func TestTUnit_Previous(t *testing.T) {
 	assert.Equal(t, ptr(10), v.Previous(10))
 
 	// range
-	r := TUnit[int]{
+	r := Unit[int]{
 		Type:      TRange,
 		ValueFrom: ptr(10),
 		ValueTo:   ptr(20),
@@ -59,7 +59,7 @@ func TestTUnit_Previous(t *testing.T) {
 	assert.Equal(t, ptr(15), r.Previous(15))
 
 	// range step
-	rs := TUnit[int]{
+	rs := Unit[int]{
 		Type:      TRange | TStep,
 		ValueFrom: ptr(10),
 		ValueTo:   ptr(20),
@@ -74,7 +74,7 @@ func TestTUnit_Previous(t *testing.T) {
 	assert.Equal(t, ptr(19), rs.Previous(21))
 
 	// step
-	s := TUnit[int]{
+	s := Unit[int]{
 		Type:      TStep,
 		ValueStep: ptr(3),
 	}

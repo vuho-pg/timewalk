@@ -31,7 +31,7 @@ func TestTUnit_String(t *testing.T) {
 
 }
 
-func TestTUnit_NearestFrom(t *testing.T) {
+func TestTUnit_Previous(t *testing.T) {
 
 	// value
 	v := TUnit[int]{
@@ -39,11 +39,11 @@ func TestTUnit_NearestFrom(t *testing.T) {
 		Value: ptr(10),
 	}
 	// * o
-	assert.Equal(t, ptr(10), v.NearestBefore(11))
+	assert.Equal(t, ptr(10), v.Previous(11))
 	// o *
-	assert.Nil(t, v.NearestBefore(9))
+	assert.Nil(t, v.Previous(9))
 	// o|*
-	assert.Equal(t, ptr(10), v.NearestBefore(10))
+	assert.Equal(t, ptr(10), v.Previous(10))
 
 	// range
 	r := TUnit[int]{
@@ -52,11 +52,11 @@ func TestTUnit_NearestFrom(t *testing.T) {
 		ValueTo:   ptr(20),
 	}
 	// [] o
-	assert.Equal(t, ptr(20), r.NearestBefore(21))
+	assert.Equal(t, ptr(20), r.Previous(21))
 	// o []
-	assert.Nil(t, r.NearestBefore(9))
+	assert.Nil(t, r.Previous(9))
 	// [ o ]
-	assert.Equal(t, ptr(15), r.NearestBefore(15))
+	assert.Equal(t, ptr(15), r.Previous(15))
 
 	// range step
 	rs := TUnit[int]{
@@ -66,12 +66,12 @@ func TestTUnit_NearestFrom(t *testing.T) {
 		ValueStep: ptr(3),
 	}
 	// o [/]
-	assert.Nil(t, rs.NearestBefore(9))
+	assert.Nil(t, rs.Previous(9))
 	// [ o / ]
-	assert.Equal(t, ptr(10), rs.NearestBefore(12))
-	assert.Equal(t, ptr(13), rs.NearestBefore(15))
+	assert.Equal(t, ptr(10), rs.Previous(12))
+	assert.Equal(t, ptr(13), rs.Previous(15))
 	// [/] o
-	assert.Equal(t, ptr(19), rs.NearestBefore(21))
+	assert.Equal(t, ptr(19), rs.Previous(21))
 
 	// step
 	s := TUnit[int]{
@@ -79,10 +79,10 @@ func TestTUnit_NearestFrom(t *testing.T) {
 		ValueStep: ptr(3),
 	}
 	// o /
-	assert.Nil(t, s.NearestBefore(-1))
+	assert.Nil(t, s.Previous(-1))
 	// / o /
-	assert.Equal(t, ptr(3), s.NearestBefore(4))
-	assert.Equal(t, ptr(6), s.NearestBefore(7))
-	assert.Equal(t, ptr(300), s.NearestBefore(300))
+	assert.Equal(t, ptr(3), s.Previous(4))
+	assert.Equal(t, ptr(6), s.Previous(7))
+	assert.Equal(t, ptr(300), s.Previous(300))
 
 }

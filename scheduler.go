@@ -96,7 +96,7 @@ func (s *Schedule) Second(field ...*TUnit[int]) *Schedule {
 	return s
 }
 
-func (s *Schedule) Nearest(t time.Time) *time.Time {
+func (s *Schedule) Previous(t time.Time) *time.Time {
 	t = t.In(s.Loc)
 	y := t.Year()
 	m := t.Month()
@@ -114,16 +114,16 @@ func (s *Schedule) Nearest(t time.Time) *time.Time {
 	)
 	over := false
 year:
-	nY = s.YearField.NearestBefore(y)
+	nY = s.YearField.Previous(y)
 	if nY == nil {
 		return nil
 	}
 	over = over || *nY < t.Year()
 month:
 	if over {
-		nM = s.MonthField.NearestBefore(time.December)
+		nM = s.MonthField.Previous(time.December)
 	} else {
-		nM = s.MonthField.NearestBefore(m)
+		nM = s.MonthField.Previous(m)
 	}
 	if nM == nil {
 		y--
@@ -132,9 +132,9 @@ month:
 	over = over || *nM < t.Month()
 day:
 	if over {
-		nD = s.DayField.NearestBefore(maxDay(*nY, *nM))
+		nD = s.DayField.Previous(maxDay(*nY, *nM))
 	} else {
-		nD = s.DayField.NearestBefore(d)
+		nD = s.DayField.Previous(d)
 	}
 	if nD == nil {
 		m--
@@ -143,9 +143,9 @@ day:
 	over = over || *nD < t.Day()
 hour:
 	if over {
-		nH = s.HourField.NearestBefore(23)
+		nH = s.HourField.Previous(23)
 	} else {
-		nH = s.HourField.NearestBefore(h)
+		nH = s.HourField.Previous(h)
 	}
 	if nH == nil {
 		d--
@@ -154,9 +154,9 @@ hour:
 	over = over || *nH < t.Hour()
 minute:
 	if over {
-		nMin = s.MinuteField.NearestBefore(59)
+		nMin = s.MinuteField.Previous(59)
 	} else {
-		nMin = s.MinuteField.NearestBefore(minute)
+		nMin = s.MinuteField.Previous(minute)
 	}
 	if nMin == nil {
 		h--
@@ -165,9 +165,9 @@ minute:
 	over = over || *nMin < t.Minute()
 	// second
 	if over {
-		nSec = s.SecondField.NearestBefore(59)
+		nSec = s.SecondField.Previous(59)
 	} else {
-		nSec = s.SecondField.NearestBefore(sec)
+		nSec = s.SecondField.Previous(sec)
 
 	}
 	if nSec == nil {

@@ -18,10 +18,10 @@ func (f TField[T]) String(unitName string) string {
 	return b.String()
 }
 
-func (f TField[T]) NearestBefore(data T) *T {
+func (f TField[T]) Previous(data T) *T {
 	var res *T
 	for _, u := range f {
-		now := u.NearestBefore(data)
+		now := u.Previous(data)
 		if now != nil {
 			if res == nil {
 				res = now

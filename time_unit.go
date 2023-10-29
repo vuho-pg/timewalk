@@ -84,7 +84,7 @@ func (u *TUnit[T]) String(unitName string) string {
 	return b.String()
 }
 
-func (u *TUnit[T]) NearestBefore(data T) *T {
+func (u *TUnit[T]) Previous(data T) *T {
 	// [] range
 	// [/] range step
 	// * value

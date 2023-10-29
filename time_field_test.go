@@ -5,15 +5,15 @@ import (
 	"testing"
 )
 
-func TestTField_NearestBefore(t *testing.T) {
+func TestTField_Previous(t *testing.T) {
 	fields := Field[int](
 		Unit[int]().At(10),
 		Unit[int]().From(15).To(30),
 		Unit[int]().At(40),
 	)
-	assert.Nil(t, fields.NearestBefore(9))
-	assert.Equal(t, ptr(10), fields.NearestBefore(13))
-	assert.Equal(t, ptr(20), fields.NearestBefore(20))
-	assert.Equal(t, ptr(30), fields.NearestBefore(35))
-	assert.Equal(t, ptr(40), fields.NearestBefore(45))
+	assert.Nil(t, fields.Previous(9))
+	assert.Equal(t, ptr(10), fields.Previous(13))
+	assert.Equal(t, ptr(20), fields.Previous(20))
+	assert.Equal(t, ptr(30), fields.Previous(35))
+	assert.Equal(t, ptr(40), fields.Previous(45))
 }

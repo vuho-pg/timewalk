@@ -22,15 +22,15 @@ func TestNewSchedule(t *testing.T) {
 	fmt.Println(string(j))
 }
 
-func TestSchedule_Nearest(t *testing.T) {
+func TestSchedule_Previous(t *testing.T) {
 	var s *Schedule
 	//start := time.Unix(0, 0)
 	// year
 	// every 2 year
 	s = NewSchedule().Year(Every(2))
 	fmt.Println(s)
-	assert.Equal(t, ptr(time.Date(2020, 12, 31, 23, 59, 59, 0, time.Local)), s.Nearest(time.Date(2021, 12, 14, 1, 3, 0, 0, time.Local)))
-	assert.Equal(t, ptr(time.Date(2020, 4, 1, 9, 0, 0, 0, time.Local)), s.Nearest(time.Date(2020, 4, 1, 9, 0, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2020, 12, 31, 23, 59, 59, 0, time.Local)), s.Previous(time.Date(2021, 12, 14, 1, 3, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2020, 4, 1, 9, 0, 0, 0, time.Local)), s.Previous(time.Date(2020, 4, 1, 9, 0, 0, 0, time.Local)))
 
 	// from 2020 to 2025
 	s = NewSchedule().Year(From(2020).To(2025))

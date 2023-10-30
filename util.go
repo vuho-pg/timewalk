@@ -46,3 +46,13 @@ func ordinalSuffix[T TimeUnit](x T, suffix string) string {
 func ptr[T any](value T) *T {
 	return &value
 }
+
+func max[T TimeUnit](values ...T) T {
+	now := values[0]
+	for _, v := range values[1:] {
+		if v > now {
+			now = v
+		}
+	}
+	return now
+}

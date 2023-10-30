@@ -3,6 +3,7 @@ package timewalk
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,7 @@ var (
 )
 
 type Schedule struct {
+	once           sync.Once
 	YearField      TField[int]          `json:"year"`
 	MonthField     TField[time.Month]   `json:"month"`       //1-12
 	DayField       TField[int]          `json:"day"`         //1-31
@@ -26,16 +28,29 @@ type Schedule struct {
 	SecondField    TField[int]          `json:"second"`      //0-59
 	Duration       time.Duration        `json:"duration"`
 	Start          int64                `json:"start"`
+	End            int64                `json:"end"`
 	Location       string               `json:"location"`
 	StartTime      *time.Time           `json:"-"`
+	EndTime        *time.Time           `json:"-"`
 	Loc            *time.Location       `json:"-"`
 }
 
 func Scheduler() *Schedule {
-	return &Schedule{
+	s := &Schedule{
 		Location: time.Local.String(),
-		Loc:      time.Local,
 	}
+	s.once.Do(s.correct)
+	return s
+}
+
+func (s *Schedule) correct() {
+	if s.Start != 0 {
+		s.StartTime = ptr(time.Unix(s.Start, 0))
+	}
+	if s.End != 0 {
+		s.EndTime = ptr(time.Unix(s.End, 0))
+	}
+	s.WithLocString(s.Location)
 }
 
 func ScheduleFromJSON(data string) (*Schedule, error) {
@@ -43,16 +58,27 @@ func ScheduleFromJSON(data string) (*Schedule, error) {
 	if err := json.Unmarshal([]byte(data), &s); err != nil {
 		return nil, err
 	}
-	if s.Start != 0 {
-		s.StartTime = ptr(time.Unix(s.Start, 0))
-	}
-	s = s.WithLocString(s.Location)
+	s.once.Do(s.correct)
 	return s, nil
 }
 
-func (s *Schedule) StartAt(t time.Time) *Schedule {
-	s.StartTime = &t
-	s.Start = t.Unix()
+func (s *Schedule) StartAt(t *time.Time) *Schedule {
+	s.StartTime = t
+	if t != nil {
+		s.Start = t.Unix()
+	} else {
+		s.Start = 0
+	}
+	return s
+}
+
+func (s *Schedule) EndAt(t *time.Time) *Schedule {
+	s.EndTime = t
+	if t != nil {
+		s.End = t.Unix()
+	} else {
+		s.End = 0
+	}
 	return s
 }
 
@@ -114,6 +140,7 @@ func (s *Schedule) Second(field ...*Unit[int]) *Schedule {
 }
 
 func (s *Schedule) Previous(t time.Time) *time.Time {
+	s.once.Do(s.correct)
 	t = t.In(s.Loc)
 	y := t.Year()
 	m := t.Month()
@@ -219,6 +246,7 @@ minute:
 }
 
 func (s *Schedule) String() string {
+	s.once.Do(s.correct)
 	b := strings.Builder{}
 	pre := false
 	if s.YearField != nil {
@@ -270,6 +298,10 @@ func (s *Schedule) String() string {
 	if s.StartTime != nil {
 		b.WriteString(", start from ")
 		b.WriteString(s.StartTime.In(s.Loc).Format(time.RFC850))
+	}
+	if s.EndTime != nil {
+		b.WriteString(", end at ")
+		b.WriteString(s.EndTime.In(s.Loc).Format(time.RFC850))
 	}
 	if s.Duration != 0 {
 		b.WriteString(" with ")

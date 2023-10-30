@@ -27,20 +27,20 @@ func TestSchedule_String(t *testing.T) {
 	now := time.Now()
 	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
 	assert.NoError(t, err)
-	s := Scheduler().StartAt(now).WithLoc(loc).WithDuration(time.Hour).
+	s := Scheduler().StartAt(&now).EndAt(ptr(now.Add(time.Hour))).WithLoc(loc).WithDuration(time.Hour).
 		Year(At(2023)).
 		Month(At(time.December)).
 		Day(At(22)).
 		DayOfWeek(At(time.Tuesday)).
 		Hour(At(3)).Minute(At(11)).Second(At(0))
-	str := fmt.Sprintf("at 2023rd year, at December, at 22nd day, at Tuesday, at 3rd hour, at 11th minute, at 0th second, start from %v with 1h0m0s duration", now.In(loc).Format(time.RFC850))
+	str := fmt.Sprintf("at 2023rd year, at December, at 22nd day, at Tuesday, at 3rd hour, at 11th minute, at 0th second, start from %v, end at %v with 1h0m0s duration", now.In(loc).Format(time.RFC850), now.In(loc).Add(time.Hour).Format(time.RFC850))
 	assert.Equal(t, str, s.String())
 }
 
 func TestSchedule_JSON(t *testing.T) {
 	loc, err := time.LoadLocation("UTC")
 	assert.NoError(t, err)
-	s := Scheduler().StartAt(time.Now()).WithLoc(loc).WithDuration(time.Hour).
+	s := Scheduler().StartAt(ptr(time.Now())).EndAt(ptr(time.Now().Add(time.Hour))).WithLoc(loc).WithDuration(time.Hour).
 		Year(At(2023), From(2025).To(2030).Every(2)).
 		Month(At(time.January), From(time.March).To(time.December).Every(2)).
 		Day(At(1), From(2).To(31).Every(3)).
@@ -57,7 +57,7 @@ func TestSchedule_JSON(t *testing.T) {
 
 func TestSchedule_StartAt(t *testing.T) {
 	now := time.Now()
-	s := Scheduler().StartAt(now)
+	s := Scheduler().StartAt(&now)
 	assert.Equal(t, now.Unix(), s.Start)
 	assert.NotNil(t, s.StartTime)
 	assert.Equal(t, now, *s.StartTime)

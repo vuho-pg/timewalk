@@ -1,7 +1,6 @@
 package timewalk
 
 import (
-	"cmp"
 	"fmt"
 	"time"
 )
@@ -48,7 +47,7 @@ func ptr[T any](value T) *T {
 	return &value
 }
 
-func max[T cmp.Ordered](values ...T) T {
+func max[T TimeUnit](values ...T) T {
 	now := values[0]
 	for _, v := range values[1:] {
 		if v > now {

@@ -1,6 +1,7 @@
 package timewalk
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 )
@@ -35,6 +36,18 @@ func Scheduler() *Schedule {
 		Location: time.Local.String(),
 		Loc:      time.Local,
 	}
+}
+
+func ScheduleFromJSON(data string) (*Schedule, error) {
+	var s *Schedule
+	if err := json.Unmarshal([]byte(data), &s); err != nil {
+		return nil, err
+	}
+	if s.Start != 0 {
+		s.StartTime = ptr(time.Unix(s.Start, 0))
+	}
+	s = s.WithLocString(s.Location)
+	return s, nil
 }
 
 func (s *Schedule) StartAt(t time.Time) *Schedule {

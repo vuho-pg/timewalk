@@ -24,8 +24,9 @@ type Schedule struct {
 	MinuteField    TField[int]          `json:"minute"`      //0-59
 	SecondField    TField[int]          `json:"second"`      //0-59
 	Duration       time.Duration        `json:"duration"`
-	Start          *time.Time           `json:"start"`
+	Start          int64                `json:"start"`
 	Location       string               `json:"location"`
+	StartTime      *time.Time           `json:"-"`
 	Loc            *time.Location       `json:"-"`
 }
 
@@ -37,7 +38,8 @@ func Scheduler() *Schedule {
 }
 
 func (s *Schedule) StartAt(t time.Time) *Schedule {
-	s.Start = ptr(t)
+	s.StartTime = &t
+	s.Start = t.Unix()
 	return s
 }
 
@@ -54,6 +56,7 @@ func (s *Schedule) WithLocString(loc string) *Schedule {
 		tz = time.Local
 	}
 	s.Loc = tz
+	s.Location = tz.String()
 	return s
 }
 
@@ -251,9 +254,9 @@ func (s *Schedule) String() string {
 		pre = true
 		b.WriteString(s.SecondField.String("second"))
 	}
-	if s.Start != nil {
+	if s.StartTime != nil {
 		b.WriteString(", start from ")
-		b.WriteString(s.Start.In(s.Loc).Format(time.RFC850))
+		b.WriteString(s.StartTime.In(s.Loc).Format(time.RFC850))
 	}
 	if s.Duration != 0 {
 		b.WriteString(" with ")

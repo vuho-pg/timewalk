@@ -1,6 +1,7 @@
 package timewalk
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -34,6 +35,24 @@ func TestSchedule_String(t *testing.T) {
 		Hour(At(3)).Minute(At(11)).Second(At(0))
 	str := fmt.Sprintf("at 2023rd year, at December, at 22nd day, at Tuesday, at 3rd hour, at 11th minute, at 0th second, start from %v with 1h0m0s duration", now.In(loc).Format(time.RFC850))
 	assert.Equal(t, str, s.String())
+}
+
+func TestSchedule_JSON(t *testing.T) {
+	loc, err := time.LoadLocation("UTC")
+	assert.NoError(t, err)
+	s := Scheduler().StartAt(time.Now()).WithLoc(loc).WithDuration(time.Hour).
+		Year(At(2023), From(2025).To(2030).Every(2)).
+		Month(At(time.January), From(time.March).To(time.December).Every(2)).
+		Day(At(1), From(2).To(31).Every(3)).
+		DayOfWeek(At(time.Tuesday)).
+		Hour(At(3)).Minute(At(11)).Second(At(0))
+
+	sJSON, err := json.MarshalIndent(s, "", "\t")
+	assert.NoError(t, err)
+	fromJSON, err := ScheduleFromJSON(string(sJSON))
+	assert.NoError(t, err)
+	assert.Equal(t, s.String(), fromJSON.String())
+	fmt.Println(string(sJSON))
 }
 
 func TestSchedule_StartAt(t *testing.T) {

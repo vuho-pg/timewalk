@@ -17,3 +17,13 @@ func TestTField_Previous(t *testing.T) {
 	assert.Equal(t, ptr(30), fields.Previous(35))
 	assert.Equal(t, ptr(40), fields.Previous(45))
 }
+
+func TestField_String(t *testing.T) {
+	fields := Field[int](
+		At(10),
+		From(15).To(30),
+		At(40),
+	)
+
+	assert.Equal(t, "at 10th unit and from 15th unit through 30th unit and at 40th unit", fields.String("unit"))
+}

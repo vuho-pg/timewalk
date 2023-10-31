@@ -15,10 +15,11 @@ func TestSchedule_String(t *testing.T) {
 	s := Scheduler().StartAt(&now).EndAt(ptr(now.Add(time.Hour))).WithLoc(loc).WithDuration(time.Hour).
 		Year(At(2023)).
 		Month(At(time.December)).
+		Week(From(1).To(5)).
 		Day(At(22)).
 		DayOfWeek(At(time.Tuesday)).
 		Hour(At(3)).Minute(At(11)).Second(At(0))
-	str := fmt.Sprintf("at 2023rd year, at December, at 22nd day, at Tuesday, at 3rd hour, at 11th minute, at 0th second, start from %v, end at %v with 1h0m0s duration", now.In(loc).Format(time.RFC850), now.In(loc).Add(time.Hour).Format(time.RFC850))
+	str := fmt.Sprintf("at 2023rd year, at December, from 1st week through 5th week, at 22nd day, at Tuesday, at 3rd hour, at 11th minute, at 0th second, start from %v, end at %v with 1h0m0s duration", now.In(loc).Format(time.RFC850), now.In(loc).Add(time.Hour).Format(time.RFC850))
 	assert.Equal(t, str, s.String())
 }
 

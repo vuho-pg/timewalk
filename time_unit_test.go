@@ -68,11 +68,11 @@ func TestUnit_Previous(t *testing.T) {
 		Value: ptr(10),
 	}
 	// * o
-	assert.Equal(t, ptr(10), v.Previous(11))
+	assert.Equal(t, 10, v.Previous(11))
 	// o *
-	assert.Nil(t, v.Previous(9))
+	assert.Equal(t, -1, v.Previous(9))
 	// o|*
-	assert.Equal(t, ptr(10), v.Previous(10))
+	assert.Equal(t, 10, v.Previous(10))
 
 	// range
 	r := Unit[int]{
@@ -81,11 +81,11 @@ func TestUnit_Previous(t *testing.T) {
 		ValueTo:   ptr(20),
 	}
 	// [] o
-	assert.Equal(t, ptr(20), r.Previous(21))
+	assert.Equal(t, 20, r.Previous(21))
 	// o []
-	assert.Nil(t, r.Previous(9))
+	assert.Equal(t, -1, r.Previous(9))
 	// [ o ]
-	assert.Equal(t, ptr(15), r.Previous(15))
+	assert.Equal(t, 15, r.Previous(15))
 
 	// range step
 	rs := Unit[int]{
@@ -95,12 +95,12 @@ func TestUnit_Previous(t *testing.T) {
 		ValueStep: ptr(3),
 	}
 	// o [/]
-	assert.Nil(t, rs.Previous(9))
+	assert.Equal(t, -1, rs.Previous(9))
 	// [ o / ]
-	assert.Equal(t, ptr(10), rs.Previous(12))
-	assert.Equal(t, ptr(13), rs.Previous(15))
+	assert.Equal(t, 10, rs.Previous(12))
+	assert.Equal(t, 13, rs.Previous(15))
 	// [/] o
-	assert.Equal(t, ptr(19), rs.Previous(21))
+	assert.Equal(t, 19, rs.Previous(21))
 
 	// step
 	s := Unit[int]{
@@ -108,15 +108,15 @@ func TestUnit_Previous(t *testing.T) {
 		ValueStep: ptr(3),
 	}
 	// o /
-	assert.Nil(t, s.Previous(-1))
+	assert.Equal(t, -1, s.Previous(-1))
 	// / o /
-	assert.Equal(t, ptr(3), s.Previous(4))
-	assert.Equal(t, ptr(6), s.Previous(7))
-	assert.Equal(t, ptr(300), s.Previous(300))
+	assert.Equal(t, 3, s.Previous(4))
+	assert.Equal(t, 6, s.Previous(7))
+	assert.Equal(t, 300, s.Previous(300))
 
 	// unknown
 	u := Unit[int]{
 		Type: TUnknown,
 	}
-	assert.Nil(t, u.Previous(0))
+	assert.Equal(t, -1, u.Previous(0))
 }

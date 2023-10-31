@@ -8,21 +8,6 @@ import (
 	"time"
 )
 
-//	func TestNewSchedule(t *testing.T) {
-//		s := Scheduler().
-//			StartAt(time.Now()).
-//			WithLocString(time.Local.String()).
-//			WithDuration(time.Hour*24).
-//			Year(From(2023).To(2025)).
-//			Month(From(time.January).To(4), At(time.October)).
-//			Day(From(1).To(31)).
-//			DayOfWeek(From(time.Monday).To(time.Friday)).
-//			Hour(At(10)).Minute(At(0)).Second(At(0))
-//		fmt.Println(s)
-//		j, _ := json.MarshalIndent(s, "", "  ")
-//		fmt.Println(string(j))
-//	}
-
 func TestSchedule_String(t *testing.T) {
 	now := time.Now()
 	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
@@ -138,5 +123,8 @@ func TestSchedule(t *testing.T) {
 	assert.Equal(t, ptr(time.Date(2023, 10, 31, 10, 30, 0, 0, time.Local)), s.Previous(now))
 	now = time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)
 	assert.Equal(t, ptr(time.Date(2023, 10, 26, 10, 30, 0, 0, time.Local)), s.Previous(now))
-
+	// every tue and 2 week
+	s = Scheduler().Week(From(1).Every(2)).DayOfWeek(At(time.Tuesday)).Hour(At(12)).Minute(At(30)).Second(At(0))
+	assert.Equal(t, ptr(time.Date(2023, 10, 31, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 11, 1, 0, 0, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2023, 10, 17, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)))
 }

@@ -19,9 +19,9 @@ func (f TField[T]) String(unitName string) string {
 }
 
 // PreviousInPool returns the previous value in the pool
-func (f TField[T]) PreviousInPool(data T, pool []T) *T {
+func (f TField[T]) PreviousInPool(data T, pool []T) T {
 	if len(pool) == 0 {
-		return nil
+		return -1
 	}
 	res := T(-1)
 	for _, v := range pool {
@@ -29,11 +29,7 @@ func (f TField[T]) PreviousInPool(data T, pool []T) *T {
 			res = max(res, v)
 		}
 	}
-
-	if res == -1 {
-		return nil
-	}
-	return &res
+	return res
 }
 
 func (f TField[T]) Match(data T) bool {
@@ -45,16 +41,12 @@ func (f TField[T]) Match(data T) bool {
 	return false
 }
 
-func (f TField[T]) Previous(data T) *T {
-	var res *T
+func (f TField[T]) Previous(data T) T {
+	var res = T(-1)
 	for _, u := range f {
 		now := u.Previous(data)
-		if now != nil {
-			if res == nil {
-				res = now
-				continue
-			}
-			res = ptr(max(*res, *now))
+		if now != -1 {
+			res = max(res, now)
 		}
 	}
 	return res

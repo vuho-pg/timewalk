@@ -10,6 +10,7 @@ import (
 var (
 	AnyYear      = Field[int](From(0))
 	AnyMonth     = Field[time.Month](From(time.January))
+	AnyWeek      = Field[int](From(0))
 	AnyDay       = Field[int](From(1))
 	AnyDayOfWeek = Field[time.Weekday](From(time.Sunday))
 	AnyHour      = Field[int](From(0))
@@ -20,7 +21,8 @@ var (
 type Schedule struct {
 	once           sync.Once
 	YearField      TField[int]          `json:"year"`
-	MonthField     TField[time.Month]   `json:"month"`       //1-12
+	MonthField     TField[time.Month]   `json:"month"` //1-12
+	WeekField      TField[int]          `json:"week"`
 	DayField       TField[int]          `json:"day"`         //1-31
 	DayOfWeekField TField[time.Weekday] `json:"day_of_week"` //0-6
 	HourField      TField[int]          `json:"hour"`        //0-23
@@ -119,6 +121,11 @@ func (s *Schedule) Day(units ...*Unit[int]) *Schedule {
 	return s
 }
 
+func (s *Schedule) Week(units ...*Unit[int]) *Schedule {
+	s.WeekField = units
+	return s
+}
+
 func (s *Schedule) DayOfWeek(units ...*Unit[time.Weekday]) *Schedule {
 	s.DayOfWeekField = units
 	return s
@@ -142,47 +149,46 @@ func (s *Schedule) Second(field ...*Unit[int]) *Schedule {
 func (s *Schedule) Previous(t time.Time) *time.Time {
 	s.once.Do(s.correct)
 	t = t.In(s.Loc)
-	y, m, d, h, minute, sec := t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second()
-	var (
-		nY   *int
-		nM   *time.Month
-		nD   *int
-		nH   *int
-		nMin *int
-		nSec *int
-	)
-	oY, oM, oD, oH, oMin := false, false, false, false, false
+	now := T(t)
+	res := EmptyTime(s.Loc)
+
+	oY, oM, oW, oD, oH, oMin := false, false, false, false, false, false
+	y := now.Year
 year:
 	yearField := s.YearField
 	if len(yearField) == 0 {
 		yearField = AnyYear
 	}
-	nY = yearField.Previous(y)
-	if nY == nil {
+	res.Year = yearField.Previous(y)
+	if res.Year == -1 {
 		return nil
 	}
-	oY = *nY < t.Year()
+	oY = res.Year < t.Year()
+	m := now.Month
+	if oY {
+		m = time.December
+	}
 
 month:
 	monthField := s.MonthField
 	if len(monthField) == 0 {
 		monthField = AnyMonth
 	}
-	if oY {
-		nM = monthField.Previous(time.December)
-	} else {
-		nM = monthField.Previous(m)
-	}
-	if nM == nil {
+	res.Month = monthField.Previous(m)
+	if res.Month == -1 {
 		y--
 		goto year
 	}
-	oM = oY || *nM < t.Month()
-	maxDayOfMonth := maxDay(*nY, *nM)
+	oM = oY || res.Month < t.Month()
+	w := now.Week
+	if oM {
+		w = 5
+	}
+	maxDayOfMonth := maxDay(res.Year, res.Month)
 	dayPool := make([]int, 0)
-	validateWD := false
+	poolDayValidate := false
 	if len(s.DayOfWeekField) > 0 {
-		validateWD = true
+		poolDayValidate = true
 		dayOfWeekField := s.DayOfWeekField
 		if len(dayOfWeekField) == 0 {
 			dayOfWeekField = AnyDayOfWeek
@@ -196,76 +202,109 @@ month:
 			wd = (wd + 1) % 7
 		}
 	}
+	d := now.Day
+	if oM {
+		d = maxDayOfMonth
+	}
+week:
+	weekField := s.WeekField
+	wDayPoolValidate := false
+	wDayPool := make([]int, 0)
+	if len(weekField) != 0 {
+		wDayPoolValidate = true
+		res.Week = weekField.Previous(w)
+		if res.Week == -1 {
+			m--
+			goto month
+		}
+		// handle day pool
+
+		// 1 2 3 4 5 6 7
+		// 8 9 10 11 12 13 14
+		// 15 16 17 18 19 20 21
+		// 22 23 24 25 26 27 28
+		// 29 30 31
+		start := (res.Week-1)*7 + 1
+		end := min(res.Week*7+1, maxDayOfMonth)
+		for i := start; i <= end; i++ {
+			wDayPool = append(wDayPool, i)
+		}
+		if poolDayValidate {
+			wDayPool = intersect(dayPool, wDayPool)
+		} else {
+			wDayPool = dayPool
+		}
+
+	}
+	oW = oM || (res.Week != -1 && res.Week < w)
+
 day:
 	dayField := s.DayField
 	if len(dayField) == 0 {
 		dayField = AnyDay
 	}
-	if oM {
-		if validateWD {
-			nD = dayField.PreviousInPool(maxDayOfMonth, dayPool)
-		} else {
-			nD = dayField.Previous(maxDayOfMonth)
-		}
+	if wDayPoolValidate {
+		res.Day = dayField.PreviousInPool(d, wDayPool)
+	} else if poolDayValidate {
+		res.Day = dayField.PreviousInPool(d, dayPool)
 	} else {
-		if validateWD {
-			nD = dayField.PreviousInPool(d, dayPool)
-		} else {
-			nD = dayField.Previous(d)
+		res.Day = dayField.Previous(d)
+	}
+	if res.Day == -1 {
+		if len(weekField) == 0 {
+			m--
+			goto month
 		}
+		w--
+		goto week
 	}
-	if nD == nil {
-		m--
-		goto month
+	oD = oW || res.Day < t.Day()
+	h := now.Hour
+	if oD {
+		h = 23
 	}
-	oD = oM || *nD < t.Day()
 
 hour:
 	hourField := s.HourField
 	if len(hourField) == 0 {
 		hourField = AnyHour
 	}
-	if oD {
-		nH = hourField.Previous(23)
-	} else {
-		nH = hourField.Previous(h)
-	}
-	if nH == nil {
+	res.Hour = hourField.Previous(h)
+	if res.Hour == -1 {
 		d--
 		goto day
 	}
-	oH = oD || *nH < t.Hour()
+	oH = oD || res.Hour < t.Hour()
+	minute := now.Minute
+	if oH {
+		minute = 59
+	}
 minute:
 	minField := s.MinuteField
 	if len(minField) == 0 {
 		minField = AnyMinute
 	}
-	if oH {
-		nMin = minField.Previous(59)
-	} else {
-		nMin = minField.Previous(minute)
-	}
-	if nMin == nil {
+	res.Minute = minField.Previous(minute)
+	if res.Minute == -1 {
 		h--
 		goto hour
 	}
-	oMin = oH || *nMin < t.Minute()
+	oMin = oH || res.Minute < t.Minute()
+	sec := now.Second
+	if oMin {
+		sec = 59
+	}
 	// second
 	secField := s.SecondField
 	if len(secField) == 0 {
 		secField = AnySecond
 	}
-	if oMin {
-		nSec = secField.Previous(59)
-	} else {
-		nSec = secField.Previous(sec)
-
-	}
-	if nSec == nil {
+	res.Second = secField.Previous(sec)
+	if res.Second == -1 {
 		minute--
 		goto minute
 	}
-	return ptr(time.Date(*nY, *nM, *nD, *nH, *nMin, *nSec, 0, s.Loc))
+	return ptr(res.ToTime())
 }
 
 func (s *Schedule) String() string {

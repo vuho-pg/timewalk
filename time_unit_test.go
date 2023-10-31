@@ -31,6 +31,35 @@ func TestUnit_String(t *testing.T) {
 
 }
 
+func TestUnit_Match(t *testing.T) {
+	// value
+	v := At(10)
+	assert.True(t, v.Match(10))
+	assert.False(t, v.Match(9))
+	// range
+	r := From(10).To(20)
+	assert.True(t, r.Match(10))
+	assert.True(t, r.Match(15))
+	assert.True(t, r.Match(20))
+	assert.False(t, r.Match(9))
+	assert.False(t, r.Match(21))
+	// range step
+	r = r.Every(2)
+	assert.True(t, r.Match(10))
+	assert.False(t, r.Match(11))
+	assert.True(t, r.Match(12))
+	assert.False(t, r.Match(13))
+	// step
+	s := Every(2)
+	assert.True(t, s.Match(2))
+	assert.False(t, s.Match(3))
+	// unknown
+	u := Unit[int]{
+		Type: TUnknown,
+	}
+	assert.False(t, u.Match(0))
+}
+
 func TestUnit_Previous(t *testing.T) {
 
 	// value
@@ -85,4 +114,9 @@ func TestUnit_Previous(t *testing.T) {
 	assert.Equal(t, ptr(6), s.Previous(7))
 	assert.Equal(t, ptr(300), s.Previous(300))
 
+	// unknown
+	u := Unit[int]{
+		Type: TUnknown,
+	}
+	assert.Nil(t, u.Previous(0))
 }

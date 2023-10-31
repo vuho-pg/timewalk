@@ -130,3 +130,13 @@ func TestSchedule_Previous_PrevMinute(t *testing.T) {
 	s := Scheduler().Year(At(2023)).Month(At(time.January)).Day(At(1)).Hour(At(1)).Minute(At(1), At(2)).Second(From(2))
 	assert.Equal(t, time.Date(2023, 1, 1, 1, 1, 59, 0, time.Local), *s.Previous(time.Date(2023, 1, 1, 1, 2, 0, 0, time.Local)))
 }
+
+func TestSchedule(t *testing.T) {
+	// every Tue and Thu, 10:30
+	s := Scheduler().DayOfWeek(At(time.Tuesday), At(time.Thursday)).Hour(At(10)).Minute(At(30)).Second(At(0))
+	now := time.Date(2023, 10, 31, 11, 0, 0, 0, time.Local)
+	assert.Equal(t, ptr(time.Date(2023, 10, 31, 10, 30, 0, 0, time.Local)), s.Previous(now))
+	now = time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)
+	assert.Equal(t, ptr(time.Date(2023, 10, 26, 10, 30, 0, 0, time.Local)), s.Previous(now))
+
+}

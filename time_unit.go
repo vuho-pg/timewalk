@@ -9,7 +9,8 @@ import (
 type UnitType int
 
 const (
-	TValue UnitType = 1 << iota
+	TUnknown UnitType = 0
+	TValue   UnitType = 1 << iota
 	TRange
 	TStep
 )
@@ -92,6 +93,30 @@ func (u *Unit[T]) String(unitName string) string {
 	return b.String()
 }
 
+func (u *Unit[T]) Match(data T) bool {
+	if u.Type.Is(TValue) {
+		return *u.Value == data
+	}
+
+	if u.Type.Is(TRange) {
+		if data < *u.ValueFrom {
+			return false
+		}
+		if u.ValueTo != nil && *u.ValueTo < data {
+			return false
+		}
+
+		if u.Type.Is(TStep) {
+			return (data-*u.ValueFrom)%*u.ValueStep == 0
+		}
+		return true
+	}
+	if u.Type.Is(TStep) {
+		return data%*u.ValueStep == 0
+	}
+	return false
+}
+
 func (u *Unit[T]) Previous(data T) *T {
 	// [] range
 	// [/] range step
@@ -104,6 +129,7 @@ func (u *Unit[T]) Previous(data T) *T {
 		if *u.Value <= data {
 			return u.Value
 		}
+		return nil
 	}
 	if u.Type.Is(TRange) {
 

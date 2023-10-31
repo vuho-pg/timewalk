@@ -142,12 +142,7 @@ func (s *Schedule) Second(field ...*Unit[int]) *Schedule {
 func (s *Schedule) Previous(t time.Time) *time.Time {
 	s.once.Do(s.correct)
 	t = t.In(s.Loc)
-	y := t.Year()
-	m := t.Month()
-	d := t.Day()
-	h := t.Hour()
-	minute := t.Minute()
-	sec := t.Second()
+	y, m, d, h, minute, sec := t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second()
 	var (
 		nY   *int
 		nM   *time.Month
@@ -156,7 +151,7 @@ func (s *Schedule) Previous(t time.Time) *time.Time {
 		nMin *int
 		nSec *int
 	)
-	over := false
+	oY, oM, oD, oH, oMin := false, false, false, false, false
 year:
 	yearField := s.YearField
 	if len(yearField) == 0 {
@@ -166,13 +161,14 @@ year:
 	if nY == nil {
 		return nil
 	}
-	over = over || *nY < t.Year()
+	oY = *nY < t.Year()
+
 month:
 	monthField := s.MonthField
 	if len(monthField) == 0 {
 		monthField = AnyMonth
 	}
-	if over {
+	if oY {
 		nM = monthField.Previous(time.December)
 	} else {
 		nM = monthField.Previous(m)
@@ -181,28 +177,55 @@ month:
 		y--
 		goto year
 	}
-	over = over || *nM < t.Month()
+	oM = oY || *nM < t.Month()
+	maxDayOfMonth := maxDay(*nY, *nM)
+	dayPool := make([]int, 0)
+	validateWD := false
+	if len(s.DayOfWeekField) > 0 {
+		validateWD = true
+		dayOfWeekField := s.DayOfWeekField
+		if len(dayOfWeekField) == 0 {
+			dayOfWeekField = AnyDayOfWeek
+		}
+		firstDayOfMonth := time.Date(y, m, 1, 0, 0, 0, 0, s.Loc)
+		wd := firstDayOfMonth.Weekday()
+		for i := 1; i <= maxDayOfMonth; i++ {
+			if dayOfWeekField.Match(wd) {
+				dayPool = append(dayPool, i)
+			}
+			wd = (wd + 1) % 7
+		}
+	}
 day:
 	dayField := s.DayField
 	if len(dayField) == 0 {
 		dayField = AnyDay
 	}
-	if over {
-		nD = dayField.Previous(maxDay(*nY, *nM))
+	if oM {
+		if validateWD {
+			nD = dayField.PreviousInPool(maxDayOfMonth, dayPool)
+		} else {
+			nD = dayField.Previous(maxDayOfMonth)
+		}
 	} else {
-		nD = dayField.Previous(d)
+		if validateWD {
+			nD = dayField.PreviousInPool(d, dayPool)
+		} else {
+			nD = dayField.Previous(d)
+		}
 	}
 	if nD == nil {
 		m--
 		goto month
 	}
-	over = over || *nD < t.Day()
+	oD = oM || *nD < t.Day()
+
 hour:
 	hourField := s.HourField
 	if len(hourField) == 0 {
 		hourField = AnyHour
 	}
-	if over {
+	if oD {
 		nH = hourField.Previous(23)
 	} else {
 		nH = hourField.Previous(h)
@@ -211,13 +234,13 @@ hour:
 		d--
 		goto day
 	}
-	over = over || *nH < t.Hour()
+	oH = oD || *nH < t.Hour()
 minute:
 	minField := s.MinuteField
 	if len(minField) == 0 {
 		minField = AnyMinute
 	}
-	if over {
+	if oH {
 		nMin = minField.Previous(59)
 	} else {
 		nMin = minField.Previous(minute)
@@ -226,13 +249,13 @@ minute:
 		h--
 		goto hour
 	}
-	over = over || *nMin < t.Minute()
+	oMin = oH || *nMin < t.Minute()
 	// second
 	secField := s.SecondField
 	if len(secField) == 0 {
 		secField = AnySecond
 	}
-	if over {
+	if oMin {
 		nSec = secField.Previous(59)
 	} else {
 		nSec = secField.Previous(sec)

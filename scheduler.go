@@ -150,23 +150,24 @@ func (s *Schedule) Previous(t time.Time) *time.Time {
 	s.once.Do(s.correct)
 	t = t.In(s.Loc)
 	now := T(t)
+	upper := T(t)
 	res := EmptyTime(s.Loc)
 
 	oY, oM, oW, oD, oH, oMin := false, false, false, false, false, false
-	y := now.Year
+	upper.Year = now.Year
 year:
 	yearField := s.YearField
 	if len(yearField) == 0 {
 		yearField = AnyYear
 	}
-	res.Year = yearField.Previous(y)
+	res.Year = yearField.Previous(upper.Year)
 	if res.Year == -1 {
 		return nil
 	}
 	oY = res.Year < t.Year()
-	m := now.Month
+	upper.Month = now.Month
 	if oY {
-		m = time.December
+		upper.Month = time.December
 	}
 
 month:
@@ -174,15 +175,15 @@ month:
 	if len(monthField) == 0 {
 		monthField = AnyMonth
 	}
-	res.Month = monthField.Previous(m)
+	res.Month = monthField.Previous(upper.Month)
 	if res.Month == -1 {
-		y--
+		upper.Year--
 		goto year
 	}
 	oM = oY || res.Month < t.Month()
-	w := now.Week
+	upper.Week = now.Week
 	if oM {
-		w = 5
+		upper.Week = 5
 	}
 	maxDayOfMonth := maxDay(res.Year, res.Month)
 	dayPool := make([]int, 0)
@@ -193,7 +194,7 @@ month:
 		if len(dayOfWeekField) == 0 {
 			dayOfWeekField = AnyDayOfWeek
 		}
-		firstDayOfMonth := time.Date(y, m, 1, 0, 0, 0, 0, s.Loc)
+		firstDayOfMonth := time.Date(res.Year, res.Month, 1, 0, 0, 0, 0, s.Loc)
 		wd := firstDayOfMonth.Weekday()
 		for i := 1; i <= maxDayOfMonth; i++ {
 			if dayOfWeekField.Match(wd) {
@@ -202,9 +203,9 @@ month:
 			wd = (wd + 1) % 7
 		}
 	}
-	d := now.Day
+	upper.Day = now.Day
 	if oM {
-		d = maxDayOfMonth
+		upper.Day = maxDayOfMonth
 	}
 week:
 	weekField := s.WeekField
@@ -212,9 +213,9 @@ week:
 	wDayPool := make([]int, 0)
 	if len(weekField) != 0 {
 		wDayPoolValidate = true
-		res.Week = weekField.Previous(w)
+		res.Week = weekField.Previous(upper.Week)
 		if res.Week == -1 {
-			m--
+			upper.Month--
 			goto month
 		}
 		// handle day pool
@@ -225,18 +226,16 @@ week:
 		// 22 23 24 25 26 27 28
 		// 29 30 31
 		start := (res.Week-1)*7 + 1
-		end := min(res.Week*7+1, maxDayOfMonth)
+		end := min(res.Week*7, maxDayOfMonth)
 		for i := start; i <= end; i++ {
 			wDayPool = append(wDayPool, i)
 		}
 		if poolDayValidate {
 			wDayPool = intersect(dayPool, wDayPool)
-		} else {
-			wDayPool = dayPool
 		}
 
 	}
-	oW = oM || (res.Week != -1 && res.Week < w)
+	oW = oM || (res.Week != -1 && res.Week < upper.Week)
 
 day:
 	dayField := s.DayField
@@ -244,24 +243,24 @@ day:
 		dayField = AnyDay
 	}
 	if wDayPoolValidate {
-		res.Day = dayField.PreviousInPool(d, wDayPool)
+		res.Day = dayField.PreviousInPool(upper.Day, wDayPool)
 	} else if poolDayValidate {
-		res.Day = dayField.PreviousInPool(d, dayPool)
+		res.Day = dayField.PreviousInPool(upper.Day, dayPool)
 	} else {
-		res.Day = dayField.Previous(d)
+		res.Day = dayField.Previous(upper.Day)
 	}
 	if res.Day == -1 {
 		if len(weekField) == 0 {
-			m--
+			upper.Month--
 			goto month
 		}
-		w--
+		upper.Week--
 		goto week
 	}
 	oD = oW || res.Day < t.Day()
-	h := now.Hour
+	upper.Hour = now.Hour
 	if oD {
-		h = 23
+		upper.Hour = 23
 	}
 
 hour:
@@ -269,39 +268,39 @@ hour:
 	if len(hourField) == 0 {
 		hourField = AnyHour
 	}
-	res.Hour = hourField.Previous(h)
+	res.Hour = hourField.Previous(upper.Hour)
 	if res.Hour == -1 {
-		d--
+		upper.Day--
 		goto day
 	}
 	oH = oD || res.Hour < t.Hour()
-	minute := now.Minute
+	upper.Minute = now.Minute
 	if oH {
-		minute = 59
+		upper.Minute = 59
 	}
 minute:
 	minField := s.MinuteField
 	if len(minField) == 0 {
 		minField = AnyMinute
 	}
-	res.Minute = minField.Previous(minute)
+	res.Minute = minField.Previous(upper.Minute)
 	if res.Minute == -1 {
-		h--
+		upper.Hour--
 		goto hour
 	}
 	oMin = oH || res.Minute < t.Minute()
-	sec := now.Second
+	upper.Second = now.Second
 	if oMin {
-		sec = 59
+		upper.Second = 59
 	}
 	// second
 	secField := s.SecondField
 	if len(secField) == 0 {
 		secField = AnySecond
 	}
-	res.Second = secField.Previous(sec)
+	res.Second = secField.Previous(upper.Second)
 	if res.Second == -1 {
-		minute--
+		upper.Minute--
 		goto minute
 	}
 	return ptr(res.ToTime())
@@ -321,6 +320,13 @@ func (s *Schedule) String() string {
 		}
 		pre = true
 		b.WriteString(s.MonthField.String("month"))
+	}
+	if s.WeekField != nil {
+		if pre {
+			b.WriteString(", ")
+		}
+		pre = true
+		b.WriteString(s.WeekField.String("week"))
 	}
 	if s.DayField != nil {
 		if pre {

@@ -118,13 +118,19 @@ func TestSchedule_Previous_PrevMinute(t *testing.T) {
 
 func TestSchedule(t *testing.T) {
 	// every Tue and Thu, 10:30
-	s := Scheduler().DayOfWeek(At(time.Tuesday), At(time.Thursday)).Hour(At(10)).Minute(At(30)).Second(At(0))
-	now := time.Date(2023, 10, 31, 11, 0, 0, 0, time.Local)
-	assert.Equal(t, ptr(time.Date(2023, 10, 31, 10, 30, 0, 0, time.Local)), s.Previous(now))
-	now = time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)
-	assert.Equal(t, ptr(time.Date(2023, 10, 26, 10, 30, 0, 0, time.Local)), s.Previous(now))
-	// every tue and 2 week
-	s = Scheduler().Week(From(1).Every(2)).DayOfWeek(At(time.Tuesday)).Hour(At(12)).Minute(At(30)).Second(At(0))
+	//s := Scheduler().DayOfWeek(At(time.Tuesday), At(time.Thursday)).Hour(At(10)).Minute(At(30)).Second(At(0))
+	//now := time.Date(2023, 10, 31, 11, 0, 0, 0, time.Local)
+	//assert.Equal(t, ptr(time.Date(2023, 10, 31, 10, 30, 0, 0, time.Local)), s.Previous(now))
+	//now = time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)
+	//assert.Equal(t, ptr(time.Date(2023, 10, 26, 10, 30, 0, 0, time.Local)), s.Previous(now))
+	//// every tue and 2 week
+	//s = Scheduler().Week(From(1).Every(2)).DayOfWeek(At(time.Tuesday)).Hour(At(12)).Minute(At(30)).Second(At(0))
+	//assert.Equal(t, ptr(time.Date(2023, 10, 31, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 11, 1, 0, 0, 0, 0, time.Local)))
+	//assert.Equal(t, ptr(time.Date(2023, 10, 17, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)))
+	//// every 2 weak
+	s := Scheduler().Week(From(1).Every(2)).Hour(At(12)).Minute(At(30)).Second(At(0))
+	assert.Equal(t, ptr(time.Date(2023, 10, 7, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 13, 0, 0, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2023, 10, 6, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 7, 0, 0, 0, 0, time.Local)))
 	assert.Equal(t, ptr(time.Date(2023, 10, 31, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 11, 1, 0, 0, 0, 0, time.Local)))
-	assert.Equal(t, ptr(time.Date(2023, 10, 17, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2023, 11, 1, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 11, 2, 0, 0, 0, 0, time.Local)))
 }

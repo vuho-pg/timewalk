@@ -150,24 +150,21 @@ func (s *Schedule) Previous(t time.Time) *time.Time {
 	s.once.Do(s.correct)
 	t = t.In(s.Loc)
 	now := T(t)
-	upper := T(t)
-	res := EmptyTime(s.Loc)
-
+	res := T(t)
 	oY, oM, oW, oD, oH, oMin := false, false, false, false, false, false
-	upper.Year = now.Year
 year:
 	yearField := s.YearField
 	if len(yearField) == 0 {
 		yearField = AnyYear
 	}
-	res.Year = yearField.Previous(upper.Year)
+	res.Year = yearField.Previous(res.Year)
 	if res.Year == -1 {
 		return nil
 	}
 	oY = res.Year < t.Year()
-	upper.Month = now.Month
+	res.Month = now.Month
 	if oY {
-		upper.Month = time.December
+		res.Month = time.December
 	}
 
 month:
@@ -175,15 +172,15 @@ month:
 	if len(monthField) == 0 {
 		monthField = AnyMonth
 	}
-	res.Month = monthField.Previous(upper.Month)
+	res.Month = monthField.Previous(res.Month)
 	if res.Month == -1 {
-		upper.Year--
+		res.Year--
 		goto year
 	}
 	oM = oY || res.Month < t.Month()
-	upper.Week = now.Week
+	res.Week = now.Week
 	if oM {
-		upper.Week = 5
+		res.Week = 5
 	}
 	maxDayOfMonth := maxDay(res.Year, res.Month)
 	dayPool := make([]int, 0)
@@ -203,9 +200,9 @@ month:
 			wd = (wd + 1) % 7
 		}
 	}
-	upper.Day = now.Day
+	res.Day = now.Day
 	if oM {
-		upper.Day = maxDayOfMonth
+		res.Day = maxDayOfMonth
 	}
 week:
 	weekField := s.WeekField
@@ -213,9 +210,9 @@ week:
 	wDayPool := make([]int, 0)
 	if len(weekField) != 0 {
 		wDayPoolValidate = true
-		res.Week = weekField.Previous(upper.Week)
+		res.Week = weekField.Previous(res.Week)
 		if res.Week == -1 {
-			upper.Month--
+			res.Month--
 			goto month
 		}
 		// handle day pool
@@ -235,7 +232,7 @@ week:
 		}
 
 	}
-	oW = oM || (res.Week != -1 && res.Week < upper.Week)
+	oW = oM || (res.Week != -1 && res.Week < res.Week)
 
 day:
 	dayField := s.DayField
@@ -243,24 +240,24 @@ day:
 		dayField = AnyDay
 	}
 	if wDayPoolValidate {
-		res.Day = dayField.PreviousInPool(upper.Day, wDayPool)
+		res.Day = dayField.PreviousInPool(res.Day, wDayPool)
 	} else if poolDayValidate {
-		res.Day = dayField.PreviousInPool(upper.Day, dayPool)
+		res.Day = dayField.PreviousInPool(res.Day, dayPool)
 	} else {
-		res.Day = dayField.Previous(upper.Day)
+		res.Day = dayField.Previous(res.Day)
 	}
 	if res.Day == -1 {
 		if len(weekField) == 0 {
-			upper.Month--
+			res.Month--
 			goto month
 		}
-		upper.Week--
+		res.Week--
 		goto week
 	}
 	oD = oW || res.Day < t.Day()
-	upper.Hour = now.Hour
+	res.Hour = now.Hour
 	if oD {
-		upper.Hour = 23
+		res.Hour = 23
 	}
 
 hour:
@@ -268,39 +265,39 @@ hour:
 	if len(hourField) == 0 {
 		hourField = AnyHour
 	}
-	res.Hour = hourField.Previous(upper.Hour)
+	res.Hour = hourField.Previous(res.Hour)
 	if res.Hour == -1 {
-		upper.Day--
+		res.Day--
 		goto day
 	}
 	oH = oD || res.Hour < t.Hour()
-	upper.Minute = now.Minute
+	res.Minute = now.Minute
 	if oH {
-		upper.Minute = 59
+		res.Minute = 59
 	}
 minute:
 	minField := s.MinuteField
 	if len(minField) == 0 {
 		minField = AnyMinute
 	}
-	res.Minute = minField.Previous(upper.Minute)
+	res.Minute = minField.Previous(res.Minute)
 	if res.Minute == -1 {
-		upper.Hour--
+		res.Hour--
 		goto hour
 	}
 	oMin = oH || res.Minute < t.Minute()
-	upper.Second = now.Second
+	res.Second = now.Second
 	if oMin {
-		upper.Second = 59
+		res.Second = 59
 	}
 	// second
 	secField := s.SecondField
 	if len(secField) == 0 {
 		secField = AnySecond
 	}
-	res.Second = secField.Previous(upper.Second)
+	res.Second = secField.Previous(res.Second)
 	if res.Second == -1 {
-		upper.Minute--
+		res.Minute--
 		goto minute
 	}
 	return ptr(res.ToTime())

@@ -117,7 +117,7 @@ func (u *Unit[T]) Match(data T) bool {
 	return false
 }
 
-func (u *Unit[T]) Previous(data T) *T {
+func (u *Unit[T]) Previous(data T) T {
 	// [] range
 	// [/] range step
 	// * value
@@ -127,15 +127,15 @@ func (u *Unit[T]) Previous(data T) *T {
 	if u.Type.Is(TValue) {
 		// * o
 		if *u.Value <= data {
-			return u.Value
+			return *u.Value
 		}
-		return nil
+		return -1
 	}
 	if u.Type.Is(TRange) {
 
 		// o [ ]
 		if data < *u.ValueFrom {
-			return nil
+			return -1
 		}
 
 		// [ o ]
@@ -143,28 +143,28 @@ func (u *Unit[T]) Previous(data T) *T {
 			if u.Type.Is(TStep) {
 				dist := data - *u.ValueFrom
 				stepCnt := dist / (*u.ValueStep)
-				return ptr(*u.ValueFrom + stepCnt*(*u.ValueStep))
+				return *u.ValueFrom + stepCnt*(*u.ValueStep)
 			}
 
-			return &data
+			return data
 		}
 		// [] o
 		if u.ValueTo != nil && *u.ValueTo <= data {
 			if u.Type.Is(TStep) {
 				mod := (*u.ValueTo - *u.ValueFrom) % (*u.ValueStep)
-				return ptr(*u.ValueTo - mod)
+				return *u.ValueTo - mod
 			}
-			return u.ValueTo
+			return *u.ValueTo
 		}
 	}
 
 	if u.Type.Is(TStep) {
 		if data < 0 {
-			return nil
+			return -1
 		}
 		stepCnt := data / (*u.ValueStep)
-		return ptr(stepCnt * (*u.ValueStep))
+		return stepCnt * (*u.ValueStep)
 	}
 
-	return nil
+	return -1
 }

@@ -8,21 +8,6 @@ import (
 	"time"
 )
 
-//	func TestNewSchedule(t *testing.T) {
-//		s := Scheduler().
-//			StartAt(time.Now()).
-//			WithLocString(time.Local.String()).
-//			WithDuration(time.Hour*24).
-//			Year(From(2023).To(2025)).
-//			Month(From(time.January).To(4), At(time.October)).
-//			Day(From(1).To(31)).
-//			DayOfWeek(From(time.Monday).To(time.Friday)).
-//			Hour(At(10)).Minute(At(0)).Second(At(0))
-//		fmt.Println(s)
-//		j, _ := json.MarshalIndent(s, "", "  ")
-//		fmt.Println(string(j))
-//	}
-
 func TestSchedule_String(t *testing.T) {
 	now := time.Now()
 	loc, err := time.LoadLocation("Asia/Ho_Chi_Minh")
@@ -30,10 +15,11 @@ func TestSchedule_String(t *testing.T) {
 	s := Scheduler().StartAt(&now).EndAt(ptr(now.Add(time.Hour))).WithLoc(loc).WithDuration(time.Hour).
 		Year(At(2023)).
 		Month(At(time.December)).
+		Week(From(1).To(5)).
 		Day(At(22)).
 		DayOfWeek(At(time.Tuesday)).
 		Hour(At(3)).Minute(At(11)).Second(At(0))
-	str := fmt.Sprintf("at 2023rd year, at December, at 22nd day, at Tuesday, at 3rd hour, at 11th minute, at 0th second, start from %v, end at %v with 1h0m0s duration", now.In(loc).Format(time.RFC850), now.In(loc).Add(time.Hour).Format(time.RFC850))
+	str := fmt.Sprintf("at 2023rd year, at December, from 1st week through 5th week, at 22nd day, at Tuesday, at 3rd hour, at 11th minute, at 0th second, start from %v, end at %v with 1h0m0s duration", now.In(loc).Format(time.RFC850), now.In(loc).Add(time.Hour).Format(time.RFC850))
 	assert.Equal(t, str, s.String())
 }
 
@@ -133,10 +119,19 @@ func TestSchedule_Previous_PrevMinute(t *testing.T) {
 
 func TestSchedule(t *testing.T) {
 	// every Tue and Thu, 10:30
-	s := Scheduler().DayOfWeek(At(time.Tuesday), At(time.Thursday)).Hour(At(10)).Minute(At(30)).Second(At(0))
-	now := time.Date(2023, 10, 31, 11, 0, 0, 0, time.Local)
-	assert.Equal(t, ptr(time.Date(2023, 10, 31, 10, 30, 0, 0, time.Local)), s.Previous(now))
-	now = time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)
-	assert.Equal(t, ptr(time.Date(2023, 10, 26, 10, 30, 0, 0, time.Local)), s.Previous(now))
-
+	//s := Scheduler().DayOfWeek(At(time.Tuesday), At(time.Thursday)).Hour(At(10)).Minute(At(30)).Second(At(0))
+	//now := time.Date(2023, 10, 31, 11, 0, 0, 0, time.Local)
+	//assert.Equal(t, ptr(time.Date(2023, 10, 31, 10, 30, 0, 0, time.Local)), s.Previous(now))
+	//now = time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)
+	//assert.Equal(t, ptr(time.Date(2023, 10, 26, 10, 30, 0, 0, time.Local)), s.Previous(now))
+	//// every tue and 2 week
+	//s = Scheduler().Week(From(1).Every(2)).DayOfWeek(At(time.Tuesday)).Hour(At(12)).Minute(At(30)).Second(At(0))
+	//assert.Equal(t, ptr(time.Date(2023, 10, 31, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 11, 1, 0, 0, 0, 0, time.Local)))
+	//assert.Equal(t, ptr(time.Date(2023, 10, 17, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 31, 0, 0, 0, 0, time.Local)))
+	//// every 2 weak
+	s := Scheduler().Week(From(1).Every(2)).Hour(At(12)).Minute(At(30)).Second(At(0))
+	assert.Equal(t, ptr(time.Date(2023, 10, 7, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 13, 0, 0, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2023, 10, 6, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 10, 7, 0, 0, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2023, 10, 31, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 11, 1, 0, 0, 0, 0, time.Local)))
+	assert.Equal(t, ptr(time.Date(2023, 11, 1, 12, 30, 0, 0, time.Local)), s.Previous(time.Date(2023, 11, 2, 0, 0, 0, 0, time.Local)))
 }

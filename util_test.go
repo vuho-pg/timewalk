@@ -54,3 +54,21 @@ func Test_ptr(t *testing.T) {
 	value := 10
 	assert.Equal(t, &value, ptr(value))
 }
+
+func Test_min(t *testing.T) {
+	arr := []int{1, 2, 3, 4, 5}
+	assert.Equal(t, 1, min(arr...))
+	arr = []int{5, 4, 3, 2, 1}
+	assert.Equal(t, 1, min(arr...))
+	arr = []int{1, 2, 3, 4, 5, 0}
+	assert.Equal(t, 0, min(arr...))
+}
+
+func Test_max(t *testing.T) {
+	arr := []int{1, 2, 3, 4, 5}
+	assert.Equal(t, 5, max(arr...))
+	arr = []int{5, 4, 3, 2, 1}
+	assert.Equal(t, 5, max(arr...))
+	arr = []int{1, 2, 3, 4, 5, 0}
+	assert.Equal(t, 5, max(arr...))
+}

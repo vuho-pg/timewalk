@@ -56,3 +56,27 @@ func max[T TimeUnit](values ...T) T {
 	}
 	return now
 }
+
+func min[T TimeUnit](values ...T) T {
+	now := values[0]
+	for _, v := range values[1:] {
+		if v < now {
+			now = v
+		}
+	}
+	return now
+}
+
+func intersect[T comparable](arrA []T, arrB []T) []T {
+	mpA := make(map[T]bool)
+	res := make([]T, 0)
+	for _, v := range arrA {
+		mpA[v] = true
+	}
+	for _, v := range arrB {
+		if mpA[v] {
+			res = append(res, v)
+		}
+	}
+	return res
+}

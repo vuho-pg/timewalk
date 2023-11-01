@@ -47,6 +47,20 @@ func TestSchedule_StartAt(t *testing.T) {
 	assert.Equal(t, now.Unix(), s.Start)
 	assert.NotNil(t, s.StartTime)
 	assert.Equal(t, now, *s.StartTime)
+	s.StartAt(nil)
+	assert.Equal(t, int64(0), s.Start)
+	assert.Nil(t, s.StartTime)
+}
+
+func TestSchedule_EndAt(t *testing.T) {
+	now := time.Now()
+	s := Scheduler().EndAt(&now)
+	assert.Equal(t, now.Unix(), s.End)
+	assert.NotNil(t, s.EndTime)
+	assert.Equal(t, now, *s.EndTime)
+	s.EndAt(nil)
+	assert.Equal(t, int64(0), s.End)
+	assert.Nil(t, s.EndTime)
 }
 
 func TestSchedule_WithLoc(t *testing.T) {
@@ -76,6 +90,12 @@ func TestSchedule_WithDuration(t *testing.T) {
 	assert.Equal(t, dur, s.Duration)
 }
 
+func TestSchedule_Next_Any(t *testing.T) {
+	now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.Local)
+	s := Scheduler()
+	assert.Equal(t, &now, s.Next(now))
+}
+
 func TestSchedule_Previous_Any(t *testing.T) {
 	now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.Local)
 	s := Scheduler()
@@ -87,9 +107,14 @@ func TestSchedule_Previous_Nil(t *testing.T) {
 	assert.Nil(t, s.Previous(time.Date(2024, 1, 1, 0, 0, 0, 0, time.Local)))
 }
 
-func TestSchedule_Previous_OverYear(t *testing.T) {
+func TestSchedule_Next_Nil(t *testing.T) {
+	s := Scheduler().Year(From(0).To(2025))
+	assert.Nil(t, s.Next(time.Date(2026, 1, 1, 0, 0, 0, 0, time.Local)))
+}
+
+func TestSchedule_Next_NextYear(t *testing.T) {
 	s := Scheduler().Year(From(2023).To(2025))
-	assert.Equal(t, time.Date(2025, 12, 31, 23, 59, 59, 0, time.Local), *s.Previous(time.Date(2026, 1, 1, 0, 0, 0, 0, time.Local)))
+	assert.Equal(t, time.Date(2023, 1, 1, 0, 0, 0, 0, time.Local), *s.Next(time.Date(2022, 1, 1, 0, 0, 0, 0, time.Local)))
 }
 
 func TestSchedule_Previous_PrevYear(t *testing.T) {

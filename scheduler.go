@@ -20,6 +20,7 @@ var (
 
 type Schedule struct {
 	once           sync.Once
+	Enable         bool                 `json:"enable"`
 	YearField      TField[int]          `json:"year"`
 	MonthField     TField[time.Month]   `json:"month"` //1-12
 	WeekField      TField[int]          `json:"week"`
@@ -146,11 +147,159 @@ func (s *Schedule) Second(field ...*Unit[int]) *Schedule {
 	return s
 }
 
+func (s *Schedule) Next(t time.Time) *time.Time {
+	s.once.Do(s.correct)
+	t = t.In(s.Loc)
+	now := T(t)
+	res := T(t)
+	// check under time
+	uY, uM, uW, uD, uH, uMin := false, false, false, false, false, false
+year:
+	yearField := s.YearField
+	if len(yearField) == 0 {
+		yearField = AnyYear
+	}
+	res.Year = yearField.Next(res.Year)
+	if res.Year == -1 {
+		return nil
+	}
+	uY = res.Year > t.Year()
+	res.Month = now.Month
+	if uY {
+		res.Month = time.January
+	}
+month:
+	monthField := s.MonthField
+	if len(monthField) == 0 {
+		monthField = AnyMonth
+	}
+	res.Month = monthField.Next(res.Month)
+	if res.Month == -1 {
+		res.Year++
+		goto year
+	}
+	uM = uY || res.Month > t.Month()
+	res.Week = now.Week
+	if uM {
+		res.Week = 1
+	}
+	maxDayOfMonth := maxDay(res.Year, res.Month)
+	dayPool := make([]int, 0)
+	poolDayValidate := false
+	if len(s.DayOfWeekField) > 0 {
+		poolDayValidate = true
+		dayOfWeekField := s.DayOfWeekField
+		if len(dayOfWeekField) == 0 {
+			dayOfWeekField = AnyDayOfWeek
+		}
+		firstDayOfMonth := time.Date(res.Year, res.Month, 1, 0, 0, 0, 0, s.Loc)
+		wd := firstDayOfMonth.Weekday()
+		for i := 1; i <= maxDayOfMonth; i++ {
+			if dayOfWeekField.Match(wd) {
+				dayPool = append(dayPool, i)
+			}
+			wd = (wd + 1) % 7
+		}
+	}
+	res.Day = now.Day
+	if uM {
+		res.Day = 1
+	}
+week:
+	weekField := s.WeekField
+	wDayPoolValidate := false
+	wDayPool := make([]int, 0)
+	if len(weekField) != 0 {
+		wDayPoolValidate = true
+		res.Week = weekField.Next(res.Week)
+		if res.Week == -1 {
+			res.Month++
+			goto month
+		}
+		start := (res.Week-1)*7 + 1
+		end := min(res.Week*7, maxDayOfMonth)
+		for i := start; i <= end; i++ {
+			wDayPool = append(wDayPool, i)
+		}
+		if poolDayValidate {
+			wDayPool = intersect(dayPool, wDayPool)
+		}
+	}
+	uW = uM || (res.Week != -1 && res.Week > res.Week)
+day:
+	dayField := s.DayField
+	if len(dayField) == 0 {
+		dayField = AnyDay
+	}
+	if wDayPoolValidate {
+		res.Day = dayField.NextInPool(res.Day, wDayPool)
+	} else if poolDayValidate {
+		res.Day = dayField.NextInPool(res.Day, dayPool)
+	} else {
+		res.Day = dayField.Next(res.Day)
+	}
+	if res.Day == -1 {
+		if len(weekField) == 0 {
+			res.Month++
+			goto month
+		}
+		res.Week++
+		goto week
+	}
+	uD = uW || res.Day > t.Day()
+	res.Hour = now.Hour
+	if uD {
+		res.Hour = 0
+	}
+hour:
+	hourField := s.HourField
+	if len(hourField) == 0 {
+		hourField = AnyHour
+	}
+	res.Hour = hourField.Next(res.Hour)
+	if res.Hour == -1 {
+		res.Day++
+		goto day
+	}
+	uH = uD || res.Hour > t.Hour()
+	res.Minute = now.Minute
+	if uH {
+		res.Minute = 0
+	}
+minute:
+	minField := s.MinuteField
+	if len(minField) == 0 {
+		minField = AnyMinute
+	}
+	res.Minute = minField.Next(res.Minute)
+	if res.Minute == -1 {
+		res.Hour++
+		goto hour
+	}
+	uMin = uH || res.Minute > t.Minute()
+	res.Second = now.Second
+	if uMin {
+		res.Second = 0
+	}
+	// second
+	secField := s.SecondField
+	if len(secField) == 0 {
+		secField = AnySecond
+	}
+	res.Second = secField.Next(res.Second)
+	if res.Second == -1 {
+		res.Minute++
+		goto minute
+	}
+	return ptr(res.ToTime())
+}
+
 func (s *Schedule) Previous(t time.Time) *time.Time {
 	s.once.Do(s.correct)
 	t = t.In(s.Loc)
 	now := T(t)
 	res := T(t)
+	// check over time
 	oY, oM, oW, oD, oH, oMin := false, false, false, false, false, false
 year:
 	yearField := s.YearField
@@ -301,6 +450,21 @@ minute:
 		goto minute
 	}
 	return ptr(res.ToTime())
+}
+
+func (s *Schedule) InProgress(t time.Time) bool {
+	s.once.Do(s.correct)
+	if s.StartTime != nil && s.StartTime.After(t) {
+		return false
+	}
+	if s.EndTime != nil && s.EndTime.Before(t) {
+		return false
+	}
+	prev := s.Previous(t)
+	if prev == nil {
+		return false
+	}
+	return prev.Add(s.Duration).After(t)
 }
 
 func (s *Schedule) String() string {

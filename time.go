@@ -14,22 +14,8 @@ type Time struct {
 	Loc       *time.Location
 }
 
-func EmptyTime(loc *time.Location) *Time {
-	return &Time{
-		Year:      -1,
-		Month:     -1,
-		Week:      -1,
-		Day:       -1,
-		DayOfWeek: -1,
-		Hour:      -1,
-		Minute:    -1,
-		Second:    -1,
-		Loc:       loc,
-	}
-}
-
-func T(t time.Time) *Time {
-	return &Time{
+func T(t time.Time) Time {
+	return Time{
 		Year:      t.Year(),
 		Month:     t.Month(),
 		Week:      (t.Day()-1)/7 + 1,

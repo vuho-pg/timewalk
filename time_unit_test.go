@@ -120,3 +120,65 @@ func TestUnit_Previous(t *testing.T) {
 	}
 	assert.Equal(t, -1, u.Previous(0))
 }
+
+func TestUnit_Next(t *testing.T) {
+
+	// value
+	v := Unit[int]{
+		Type:  TValue,
+		Value: ptr(10),
+	}
+	// * o
+	assert.Equal(t, 10, v.Next(9))
+	// o *
+	assert.Equal(t, -1, v.Next(11))
+	// o|*
+	assert.Equal(t, 10, v.Next(10))
+
+	// range
+	r := Unit[int]{
+		Type:      TRange,
+		ValueFrom: ptr(10),
+		ValueTo:   ptr(20),
+	}
+	// [] o
+	assert.Equal(t, -1, r.Next(21))
+	// o []
+	assert.Equal(t, 10, r.Next(9))
+	// [ o ]
+	assert.Equal(t, 15, r.Next(15))
+
+	// range step
+	rs := Unit[int]{
+		Type:      TRange | TStep,
+		ValueFrom: ptr(10),
+		ValueTo:   ptr(20),
+		ValueStep: ptr(3),
+	}
+	// o [/]
+	assert.Equal(t, 10, rs.Next(9))
+	// [ o / ]
+	assert.Equal(t, 13, rs.Next(11))
+	assert.Equal(t, 13, rs.Next(13))
+	// [/] o
+	assert.Equal(t, -1, rs.Next(21))
+	assert.Equal(t, -1, rs.Next(20))
+
+	// step
+	s := Unit[int]{
+		Type:      TStep,
+		ValueStep: ptr(3),
+	}
+	// o /
+	assert.Equal(t, 3, s.Next(1))
+	// / o /
+	assert.Equal(t, -1, s.Next(-1))
+	assert.Equal(t, 6, s.Next(4))
+	assert.Equal(t, 6, s.Next(6))
+	assert.Equal(t, 300, s.Next(300))
+	// unknown
+	u := Unit[int]{
+		Type: TUnknown,
+	}
+	assert.Equal(t, -1, u.Next(0))
+}

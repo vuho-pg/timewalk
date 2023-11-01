@@ -18,6 +18,23 @@ func (f TField[T]) String(unitName string) string {
 	return b.String()
 }
 
+func (f TField[T]) NextInPool(data T, pool []T) T {
+	if len(pool) == 0 {
+		return -1
+	}
+	res := T(-1)
+	for _, v := range pool {
+		if v >= data && f.Match(v) {
+			if res == -1 {
+				res = v
+				continue
+			}
+			res = min(res, v)
+		}
+	}
+	return res
+}
+
 // PreviousInPool returns the previous value in the pool
 func (f TField[T]) PreviousInPool(data T, pool []T) T {
 	if len(pool) == 0 {
@@ -39,6 +56,21 @@ func (f TField[T]) Match(data T) bool {
 		}
 	}
 	return false
+}
+
+func (f TField[T]) Next(data T) T {
+	var res = T(-1)
+	for _, u := range f {
+		now := u.Next(data)
+		if now != -1 {
+			if res == -1 {
+				res = now
+				continue
+			}
+			res = min(res, now)
+		}
+	}
+	return res
 }
 
 func (f TField[T]) Previous(data T) T {

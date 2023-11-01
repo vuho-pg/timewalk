@@ -72,3 +72,18 @@ func Test_max(t *testing.T) {
 	arr = []int{1, 2, 3, 4, 5, 0}
 	assert.Equal(t, 5, max(arr...))
 }
+
+func Test_intersect(t *testing.T) {
+	// same
+	arrA := []int{1, 2, 3, 4, 5}
+	arrB := []int{1, 2, 3, 4, 5}
+	assert.Equal(t, []int{1, 2, 3, 4, 5}, intersect(arrA, arrB))
+	// intersect
+	arrA = []int{1, 2, 3, 4, 5}
+	arrB = []int{3, 4, 5, 6, 7}
+	assert.Equal(t, []int{3, 4, 5}, intersect(arrA, arrB))
+	// no intersect
+	arrA = []int{1, 2, 3, 4, 5}
+	arrB = []int{6, 7, 8, 9, 10}
+	assert.Equal(t, []int{}, intersect(arrA, arrB))
+}
